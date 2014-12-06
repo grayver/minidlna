@@ -278,6 +278,25 @@ GetFolderMetadata(const char *name, const char *path, const char *artist, const 
 }
 
 int64_t
+GetPlaylistMetadata(const char *name, const char *path, struct song_metadata *plist)
+{
+	int ret;
+	int64_t album_art = 0;
+
+	ret = sql_exec(db, "INSERT into DETAILS"
+	                   " (TITLE, PATH, ALBUM_ART) "
+	                   "VALUES"
+	                   " ('%q', %lld);",
+	                   plist->title ? plist->title : name, path, album_art);
+	if( ret != SQLITE_OK )
+		ret = 0;
+	else
+		ret = sqlite3_last_insert_rowid(db);
+
+	return ret;
+}
+
+int64_t
 GetAudioMetadata(const char *path, char *name)
 {
 	char type[4];

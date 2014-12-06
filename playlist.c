@@ -140,34 +140,103 @@ fill_playlists(void)
 
 		strncpyt(type, strrchr(plpath, '.')+1, 4);
 
-		if( start_plist(plpath, NULL, &file, NULL, type) != 0 )
+		if( start_plist(plpath, &plist, &file, NULL, type) != 0 )
 			continue;
 
 		DPRINTF(E_DEBUG, L_SCANNER, "Scanning playlist \"%s\" [%s]\n", plname, plpath);
 		if( sql_get_int_field(db, "SELECT ID from OBJECTS where PARENT_ID = '"MUSIC_PLIST_ID"'"
 		                          " and NAME = '%q'", plname) <= 0 )
 		{
-			detailID = GetFolderMetadata(plname, NULL, NULL, NULL, 0);
+			detailID = sql_get_int_field(db, "SELECT ID from DETAILS where PATH = '%q'", plpath);
+			if(detailID <= 0)
+				detailID = GetPlaylistMetadata(plname, plpath, &plist);
 			sql_exec(db, "INSERT into OBJECTS"
 			             " (OBJECT_ID, PARENT_ID, DETAIL_ID, CLASS, NAME) "
 			             "VALUES"
 			             " ('%s$%llX', '%s', %lld, 'container.%s', '%q')",
 			             MUSIC_PLIST_ID, plID, MUSIC_PLIST_ID, detailID, class, plname);
 		}
+		if( sql_get_int_field(db, "SELECT ID from OBJECTS where PARENT_ID = '"VIDEO_PLIST_ID"'"
+		                          " and NAME = '%q'", plname) <= 0 )
+		{
+			detailID = sql_get_int_field(db, "SELECT ID from DETAILS where PATH = '%q'", plpath);
+			if(detailID <= 0)
+				detailID = GetPlaylistMetadata(plname, plpath, &plist);
+			sql_exec(db, "INSERT into OBJECTS"
+			             " (OBJECT_ID, PARENT_ID, DETAIL_ID, CLASS, NAME) "
+			             "VALUES"
+			             " ('%s$%llX', '%s', %lld, 'container.%s', '%q')",
+						 VIDEO_PLIST_ID, plID, VIDEO_PLIST_ID, detailID, class, plname);
+		}
+		freetags(&plist);
 
 		plpath = dirname(plpath);
 		found = 0;
 		while( next_plist_track(&plist, &file, NULL, type) == 0 )
 		{
 			hash = gen_dir_hash(plist.path);
-			if( sql_get_int_field(db, "SELECT 1 from OBJECTS where OBJECT_ID = '%s$%llX$%d'",
-			                      MUSIC_PLIST_ID, plID, plist.track) == 1 )
+			if( sql_get_int_field(db, "SELECT 1 from OBJECTS where OBJECT_ID = '%s$%llX$%d' or OBJECT_ID = '%s$%llX$%d'",
+			                      MUSIC_PLIST_ID, plID, plist.track, VIDEO_PLIST_ID, plID, plist.track) == 1 )
 			{
 				//DEBUG DPRINTF(E_DEBUG, L_SCANNER, "%d: already in database\n", plist.track);
 				found++;
-       				freetags(&plist);
+       			freetags(&plist);
 				continue;
 			}
+
+			if(is_url(plist.path))
+			{
+				detailID = sql_get_int_field(db, "SELECT ID from DETAILS where PATH = '%q'", plist.path);
+				if(detailID <= 0)
+				{
+					if( sql_exec(db, "INSERT into DETAILS"
+			                   " (PATH, TITLE, DLNA_PN, MIME, ALBUM_ART) "
+			                   "VALUES"
+			                   " (%Q, '%q', %Q, '%s', %lld);",
+							   plist.path, plist.title, plist.dlna_pn, plist.mime, 0) != SQLITE_OK )
+					{
+						DPRINTF(E_ERROR, L_SCANNER, "Error inserting details for '%s'!\n", plist.path);
+					}
+					else
+					{
+						DPRINTF(E_DEBUG, L_SCANNER, "%d: inserted detail for%s\n", plist.track, plist.path);
+						detailID = sqlite3_last_insert_rowid(db);
+					}
+				}
+
+				char class[32];
+				char base[8];
+				memset(class, 0, sizeof(class));
+				if(plist.mime && strncmp(plist.mime, "video/", 6) || is_video(plist.path))
+				{
+					strcpy(base, VIDEO_PLIST_ID);
+					strcpy(class, "item.videoItem");
+				}
+				else if(plist.mime && strncmp(plist.mime, "audio/", 6) || is_audio(plist.path))
+				{
+					strcpy(base, MUSIC_PLIST_ID);
+					strcpy(class, "item.audioItem.musicTrack");
+				}
+
+				if(strlen(class))
+				{
+					sql_exec(db, "INSERT into OBJECTS"
+				             " (OBJECT_ID, PARENT_ID, CLASS, DETAIL_ID, NAME) "
+				             "SELECT"
+				             " '%s$%llX$%d', '%s$%llX', '%s', %lld, NAME+'-%d' from OBJECTS"
+				             " where OBJECT_ID = '%s$%llX'",
+							 base, plID, plist.track,
+							 base, plID,
+				             class, detailID, plist.track,
+							 base, plID);
+					found++;
+				}
+
+       			freetags(&plist);
+				continue;
+			}
+
+
 			if( last_dir )
 			{
 				if( hash == last_hash )
@@ -210,13 +279,23 @@ retry:
 			{
 found:
 				DPRINTF(E_DEBUG, L_SCANNER, "+ %s found in db\n", fname);
+
+				char base[8];
+				memset(base, 0, sizeof(base));
+				char *mime = sql_get_text_field(db, "SELECT MIME from DETAILS where ID = %lld", detailID);
+				if(mime && strncmp(mime, "video/", 6))
+					strcpy(base, VIDEO_PLIST_ID);
+				else if(mime && strncmp(mime, "audio/", 6))
+					strcpy(base, MUSIC_PLIST_ID);
+				sqlite3_free(mime);
+
 				sql_exec(db, "INSERT into OBJECTS"
 				             " (OBJECT_ID, PARENT_ID, CLASS, DETAIL_ID, NAME, REF_ID) "
 				             "SELECT"
 				             " '%s$%llX$%d', '%s$%llX', CLASS, DETAIL_ID, NAME, OBJECT_ID from OBJECTS"
 				             " where DETAIL_ID = %lld and OBJECT_ID glob '" BROWSEDIR_ID "$*'",
-				             MUSIC_PLIST_ID, plID, plist.track,
-				             MUSIC_PLIST_ID, plID,
+							 base, plID, plist.track,
+							 base, plID,
 				             detailID);
 				if( !last_dir )
 				{
@@ -245,7 +324,7 @@ found:
 					goto retry;
 				}
 			}
-       			freetags(&plist);
+       		freetags(&plist);
 		}
 		if( last_dir )
 		{

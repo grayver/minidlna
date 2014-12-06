@@ -24,6 +24,8 @@
 #ifndef __METADATA_H__
 #define __METADATA_H__
 
+#include "tagutils/tagutils.h"
+
 typedef struct metadata_s {
 	char *       title;
 	char *       artist;
@@ -90,6 +92,9 @@ check_for_captions(const char *path, int64_t detailID);
 
 int64_t
 GetFolderMetadata(const char *name, const char *path, const char *artist, const char *genre, int64_t album_art);
+
+int64_t
+GetPlaylistMetadata(const char *name, const char *path, struct song_metadata *plist);
 
 int64_t
 GetAudioMetadata(const char *path, char *name);

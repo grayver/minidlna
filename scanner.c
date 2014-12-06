@@ -538,6 +538,7 @@ CreateDatabase(void)
 	                        VIDEO_ID, "0", _("Video"),
 	                    VIDEO_ALL_ID, VIDEO_ID, _("All Video"),
 	                    VIDEO_DIR_ID, VIDEO_ID, _("Folders"),
+					  VIDEO_PLIST_ID, VIDEO_ID, _("Playlists"),
 
 	                        IMAGE_ID, "0", _("Pictures"),
 	                    IMAGE_ALL_ID, IMAGE_ID, _("All Pictures"),
