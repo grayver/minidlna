@@ -90,6 +90,7 @@ struct song_metadata {
 
 	char *mime;				// MIME type
 	char *dlna_pn;				// DLNA Profile Name
+	int is_stream;
 
 	char *tagversion;
 
