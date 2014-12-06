@@ -58,75 +58,6 @@ static int _m3u_next_track(struct song_metadata*, struct stat*, char*, char*);
 static int _pls_next_track(struct song_metadata*, struct stat*, char*, char*);
 
 int
-start_plist(const char *path, struct song_metadata *psong, struct stat *stat, char *lang, char *type)
-{
-	char *fname, *suffix;
-
-	_next_track = 0;
-	_utf8bom = 0;
-	_trackno = 0;
-	memset((void*)_default_track_type, 0, sizeof(_default_track_type));
-	memset((void*)_default_track_dlna_extras, 0, sizeof(_default_track_dlna_extras));
-
-	if(strcasecmp(type, "m3u") == 0)
-		_next_track = _m3u_next_track;
-	else if(strcasecmp(type, "pls") == 0)
-		_next_track = _pls_next_track;
-
-	if(!_next_track)
-	{
-		DPRINTF(E_ERROR, L_SCANNER, "Unsupported playlist type <%s> (%s)\n", type, path);
-		return -1;
-	}
-
-	if(!(fp = fopen(path, "rb")))
-	{
-		DPRINTF(E_ERROR, L_SCANNER, "Cannot open %s\n", path);
-		return -1;
-	}
-
-	if(!psong)
-		return 0;
-
-	memset((void*)psong, 0, sizeof(struct song_metadata));
-	psong->is_plist = 1;
-	psong->path = strdup(path);
-	psong->type = type;
-
-	fname = strrchr(psong->path, '/');
-	psong->basename = fname ? fname + 1 : psong->path;
-
-	// search for M3U metadata
-	if (strcasecmp(type, "m3u") == 0)
-	{
-		char buf[MAX_BUF], *p;
-		p = fgets(buf, MAX_BUF, fp);
-
-		if (strncmp(p, "#EXTM3U", 7) == 0)
-			parse_extm3u(p, psong);
-
-		rewind(fp);
-	}
-
-	if (!psong->title)
-	{
-		psong->title = strdup(psong->basename);
-		suffix = strrchr(psong->title, '.');
-		if(suffix)
-			*suffix = '\0';
-	}
-
-	if(stat)
-	{
-		if(!psong->time_modified)
-			psong->time_modified = stat->st_mtime;
-		psong->file_size = stat->st_size;
-	}
-
-	return 0;
-}
-
-int
 fill_m3u_metadata_value(struct song_metadata *psong, char* name, int name_len, char* value, int value_len)
 {
 	if(strncmp(name, "name", 4) == 0)
@@ -136,7 +67,7 @@ fill_m3u_metadata_value(struct song_metadata *psong, char* name, int name_len, c
 		psong->title[value_len] = '\0';
 	}
 	else if(strncmp(name, "type", 4) == 0)
-		strncpy(_default_track_type, value, value_len)
+		strncpy(_default_track_type, value, value_len);
 	else if(strncmp(name, "dlna_extras", 11) == 0)
 		strncpy(_default_track_dlna_extras, value, value_len);
 	else if(strncmp(name, "logo", 4) == 0)
@@ -233,10 +164,79 @@ parse_extm3u(char *extm3u, struct song_metadata *psong)
 }
 
 int
+start_plist(const char *path, struct song_metadata *psong, struct stat *stat, char *lang, char *type)
+{
+	char *fname, *suffix;
+
+	_next_track = 0;
+	_utf8bom = 0;
+	_trackno = 0;
+	memset((void*)_default_track_type, 0, sizeof(_default_track_type));
+	memset((void*)_default_track_dlna_extras, 0, sizeof(_default_track_dlna_extras));
+
+	if(strcasecmp(type, "m3u") == 0)
+		_next_track = _m3u_next_track;
+	else if(strcasecmp(type, "pls") == 0)
+		_next_track = _pls_next_track;
+
+	if(!_next_track)
+	{
+		DPRINTF(E_ERROR, L_SCANNER, "Unsupported playlist type <%s> (%s)\n", type, path);
+		return -1;
+	}
+
+	if(!(fp = fopen(path, "rb")))
+	{
+		DPRINTF(E_ERROR, L_SCANNER, "Cannot open %s\n", path);
+		return -1;
+	}
+
+	if(!psong)
+		return 0;
+
+	memset((void*)psong, 0, sizeof(struct song_metadata));
+	psong->is_plist = 1;
+	psong->path = strdup(path);
+	psong->type = type;
+
+	fname = strrchr(psong->path, '/');
+	psong->basename = fname ? fname + 1 : psong->path;
+
+	// search for M3U metadata
+	if (strcasecmp(type, "m3u") == 0)
+	{
+		char buf[MAX_BUF], *p;
+		p = fgets(buf, MAX_BUF, fp);
+
+		if (strncmp(p, "#EXTM3U", 7) == 0)
+			parse_extm3u(p, psong);
+
+		rewind(fp);
+	}
+
+	if (!psong->title)
+	{
+		psong->title = strdup(psong->basename);
+		suffix = strrchr(psong->title, '.');
+		if(suffix)
+			*suffix = '\0';
+	}
+
+	if(stat)
+	{
+		if(!psong->time_modified)
+			psong->time_modified = stat->st_mtime;
+		psong->file_size = stat->st_size;
+	}
+
+	return 0;
+}
+
+int
 _m3u_next_track(struct song_metadata *psong, struct stat *stat, char *lang, char *type)
 {
 	char buf[MAX_BUF], *p;
-	int len;
+	int i, len;
 
 	memset((void*)psong, 0, sizeof(struct song_metadata));
 	char *track_type = NULL;
@@ -407,7 +407,7 @@ _m3u_next_track(struct song_metadata *psong, struct stat *stat, char *lang, char
 		char *tr_type = track_type ? track_type : _default_track_type;
 		if(strlen(tr_type))
 		{
-			const char *mime_map =
+			const char *mime_map[] =
 				{
 					"avi", "video/avi",
 					"asf", "video/x-ms-asf",
@@ -431,7 +431,7 @@ _m3u_next_track(struct song_metadata *psong, struct stat *stat, char *lang, char
 					"wma", "audio/x-ms-wma",
 					NULL
 				};
-			for(int i = 0; mime_map[i]; i += 2)
+			for(i = 0; mime_map[i]; i += 2)
 				if(strcasecmp(tr_type, mime_map[i]) == 0)
 				{
 					psong->mime = strdup(mime_map[i+1]);
@@ -444,7 +444,7 @@ _m3u_next_track(struct song_metadata *psong, struct stat *stat, char *lang, char
 		char *dlna_pn = track_dlna_extras ? track_dlna_extras : _default_track_dlna_extras;
 		if(strlen(dlna_pn))
 		{
-			const char *dlna_extras_map =
+			const char *dlna_extras_map[] =
 				{
 					"mpeg_ps_pal", "MPEG_PS_PAL",
 					"mpeg_ps_pal_ac3", "MPEG_PS_PAL_XAC3",
@@ -480,7 +480,7 @@ _m3u_next_track(struct song_metadata *psong, struct stat *stat, char *lang, char
 					"wma_pro", "WMAPRO",
 					NULL
 				};
-			for(int i = 0; dlna_extras_map[i]; i += 2)
+			for(i = 0; dlna_extras_map[i]; i += 2)
 				if(strcasecmp(dlna_pn, dlna_extras_map[i]) == 0)
 				{
 					psong->dlna_pn = strdup(dlna_extras_map[i+1]);
