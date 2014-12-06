@@ -54,7 +54,8 @@ static char _default_track_type[128];
 static char _default_track_dlna_extras[128];
 
 static int (*_next_track)(struct song_metadata*, struct stat*, char*, char*);
-static int _m3u_pls_next_track(struct song_metadata*, struct stat*, char*, char*);
+static int _m3u_next_track(struct song_metadata*, struct stat*, char*, char*);
+static int _pls_next_track(struct song_metadata*, struct stat*, char*, char*);
 
 int
 start_plist(const char *path, struct song_metadata *psong, struct stat *stat, char *lang, char *type)
@@ -126,6 +127,27 @@ start_plist(const char *path, struct song_metadata *psong, struct stat *stat, ch
 }
 
 int
+fill_m3u_metadata_value(struct song_metadata *psong, char* name, int name_len, char* value, int value_len)
+{
+	if(strncmp(name, "name", 4) == 0)
+	{
+		psong->title = (char*)malloc(value_len + 1);
+		strncpy(psong->title, value, value_len);
+		psong->title[value_len] = '\0';
+	}
+	else if(strncmp(name, "type", 4) == 0)
+		strncpy(_default_track_type, value, value_len)
+	else if(strncmp(name, "dlna_extras", 11) == 0)
+		strncpy(_default_track_dlna_extras, value, value_len);
+	else if(strncmp(name, "logo", 4) == 0)
+	{
+		// TODO: load playlist logo image
+	}
+
+	return 0;
+}
+
+int
 parse_extm3u(char *extm3u, struct song_metadata *psong)
 {
 	char *p = extm3u;
@@ -135,7 +157,7 @@ parse_extm3u(char *extm3u, struct song_metadata *psong)
 		p++;
 
 	int st = EXTM3U_STATE_WAIT_NAME, name_len = 0, value_len = 0;
-	char* name = NULL, value = NULL;
+	char *name = NULL, *value = NULL;
 
 	while (1)
 	{
@@ -211,27 +233,6 @@ parse_extm3u(char *extm3u, struct song_metadata *psong)
 }
 
 int
-fill_m3u_metadata_value(struct song_metadata *psong, char* name, int name_len, char* value, int value_len)
-{
-	if(strncmp(name, "name", 4) == 0)
-	{
-		psong->title = (char*)malloc(value_len + 1);
-		strncpy(psong->title, value, value_len);
-		psong->title[value_len] = '\0';
-	}
-	else if(strncmp(name, "type", 4) == 0)
-		strncpy(_default_track_type, value, value_len)
-	else if(strncmp(name, "dlna_extras", 11) == 0)
-		strncpy(_default_track_dlna_extras, value, value_len);
-	else if(strncmp(name, "logo", 4) == 0)
-	{
-		// TODO: load playlist logo image
-	}
-
-	return 0;
-}
-
-int
 _m3u_next_track(struct song_metadata *psong, struct stat *stat, char *lang, char *type)
 {
 	char buf[MAX_BUF], *p;
@@ -273,7 +274,7 @@ _m3u_next_track(struct song_metadata *psong, struct stat *stat, char *lang, char
 
 				// start fsm
 				int st = EXTINF_STATE_WAIT_NAME, name_len = 0, value_len = 0, title_len = 0;
-				char* name = NULL, value = NULL, title = NULL;
+				char *name = NULL, *value = NULL, *title = NULL;
 
 				while (1)
 				{
