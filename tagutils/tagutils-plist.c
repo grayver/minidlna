@@ -60,17 +60,17 @@ static int _pls_next_track(struct song_metadata*, struct stat*, char*, char*);
 int
 fill_m3u_metadata_value(struct song_metadata *psong, char* name, int name_len, char* value, int value_len)
 {
-	if(strncmp(name, "name", 4) == 0)
+	if(strncmp(name, "name", name_len) == 0)
 	{
 		psong->title = (char*)malloc(value_len + 1);
 		strncpy(psong->title, value, value_len);
 		psong->title[value_len] = '\0';
 	}
-	else if(strncmp(name, "type", 4) == 0)
+	else if(strncmp(name, "type", name_len) == 0)
 		strncpy(_default_track_type, value, value_len);
-	else if(strncmp(name, "dlna_extras", 11) == 0)
+	else if(strncmp(name, "dlna_extras", name_len) == 0)
 		strncpy(_default_track_dlna_extras, value, value_len);
-	else if(strncmp(name, "logo", 4) == 0)
+	else if(strncmp(name, "logo", name_len) == 0)
 	{
 		// TODO: load playlist logo image
 	}
@@ -297,6 +297,8 @@ _m3u_next_track(struct song_metadata *psong, struct stat *stat, char *lang, char
 						}
 						else if (*p == ' ')
 							st = EXTINF_STATE_WAIT_NAME;
+						else if (*p == ',')
+							st = EXTINF_STATE_WAIT_TITLE;
 						break;
 					case EXTINF_STATE_WAIT_VALUE:
 						if(*p == '\"')
@@ -308,18 +310,18 @@ _m3u_next_track(struct song_metadata *psong, struct stat *stat, char *lang, char
 						}
 						break;
 					case EXTINF_STATE_UNQUOTED_READ:
-						if(*p == ' ' || !*p)
+						if(*p == ' ' || *p == ',' || !*p)
 						{
 							value_len = p - value;
 							if (name_len > 0 && value_len > 0)
 							{
-								if(strncmp(name, "type", 4) == 0)
+								if(strncmp(name, "type", name_len) == 0)
 								{
 									track_type = (char*)malloc(value_len + 1);
 									strncpy(track_type, value, value_len);
 									track_type[value_len] = '\0';
 								}
-								else if(strncmp(name, "dlna_extras", 11) == 0)
+								else if(strncmp(name, "dlna_extras", name_len) == 0)
 								{
 									track_dlna_extras = (char*)malloc(value_len + 1);
 									strncpy(track_dlna_extras, value, value_len);
@@ -328,7 +330,10 @@ _m3u_next_track(struct song_metadata *psong, struct stat *stat, char *lang, char
 							}
 							name_len = 0;
 							value_len = 0;
-							st = EXTINF_STATE_WAIT_NAME;
+							if(*p == ',')
+								st = EXTINF_STATE_WAIT_TITLE;
+							else
+								st = EXTINF_STATE_WAIT_NAME;
 						}
 						break;
 					case EXTINF_STATE_QUOTE_STARTED:
@@ -349,13 +354,13 @@ _m3u_next_track(struct song_metadata *psong, struct stat *stat, char *lang, char
 							value_len = p - value;
 							if (name_len > 0 && value_len > 0)
 							{
-								if(strncmp(name, "type", 4) == 0)
+								if(strncmp(name, "type", name_len) == 0)
 								{
 									track_type = (char*)malloc(value_len + 1);
 									strncpy(track_type, value, value_len);
 									track_type[value_len] = '\0';
 								}
-								else if(strncmp(name, "dlna_extras", 11) == 0)
+								else if(strncmp(name, "dlna_extras", name_len) == 0)
 								{
 									track_dlna_extras = (char*)malloc(value_len + 1);
 									strncpy(track_dlna_extras, value, value_len);

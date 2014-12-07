@@ -286,7 +286,7 @@ GetPlaylistMetadata(const char *name, const char *path, struct song_metadata *pl
 	ret = sql_exec(db, "INSERT into DETAILS"
 	                   " (TITLE, PATH, ALBUM_ART) "
 	                   "VALUES"
-	                   " ('%q', %lld);",
+	                   " ('%q', %Q, %lld);",
 	                   plist->title ? plist->title : name, path, album_art);
 	if( ret != SQLITE_OK )
 		ret = 0;

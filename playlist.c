@@ -223,7 +223,7 @@ fill_playlists(void)
 					sql_exec(db, "INSERT into OBJECTS"
 				             " (OBJECT_ID, PARENT_ID, CLASS, DETAIL_ID, NAME) "
 				             "SELECT"
-				             " '%s$%llX$%d', '%s$%llX', '%s', %lld, NAME+'-%d' from OBJECTS"
+				             " '%s$%llX$%d', '%s$%llX', '%s', %lld, NAME || '-%d' from OBJECTS"
 				             " where OBJECT_ID = '%s$%llX'",
 							 base, plID, plist.track,
 							 base, plID,
