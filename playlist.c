@@ -207,12 +207,12 @@ fill_playlists(void)
 				char class[32];
 				char base[8];
 				memset(class, 0, sizeof(class));
-				if(plist.mime && strncmp(plist.mime, "video/", 6) || is_video(plist.path))
+				if((plist.mime && strncmp(plist.mime, "video/", 6) == 0) || is_video(plist.path))
 				{
 					strcpy(base, VIDEO_PLIST_ID);
 					strcpy(class, "item.videoItem");
 				}
-				else if(plist.mime && strncmp(plist.mime, "audio/", 6) || is_audio(plist.path))
+				else if((plist.mime && strncmp(plist.mime, "audio/", 6) == 0) || is_audio(plist.path))
 				{
 					strcpy(base, MUSIC_PLIST_ID);
 					strcpy(class, "item.audioItem.musicTrack");
@@ -283,9 +283,9 @@ found:
 				char base[8];
 				memset(base, 0, sizeof(base));
 				char *mime = sql_get_text_field(db, "SELECT MIME from DETAILS where ID = %lld", detailID);
-				if(mime && strncmp(mime, "video/", 6))
+				if(mime && strncmp(mime, "video/", 6) == 0)
 					strcpy(base, VIDEO_PLIST_ID);
-				else if(mime && strncmp(mime, "audio/", 6))
+				else if(mime && strncmp(mime, "audio/", 6) == 0)
 					strcpy(base, MUSIC_PLIST_ID);
 				sqlite3_free(mime);
 

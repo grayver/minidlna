@@ -313,13 +313,13 @@ _m3u_next_track(struct song_metadata *psong, struct stat *stat, char *lang, char
 							value_len = p - value;
 							if (name_len > 0 && value_len > 0)
 							{
-								if(strncmp(name, "type", 4))
+								if(strncmp(name, "type", 4) == 0)
 								{
 									track_type = (char*)malloc(value_len + 1);
 									strncpy(track_type, value, value_len);
 									track_type[value_len] = '\0';
 								}
-								else if(strncmp(name, "dlna_extras", 11))
+								else if(strncmp(name, "dlna_extras", 11) == 0)
 								{
 									track_dlna_extras = (char*)malloc(value_len + 1);
 									strncpy(track_dlna_extras, value, value_len);
@@ -349,13 +349,13 @@ _m3u_next_track(struct song_metadata *psong, struct stat *stat, char *lang, char
 							value_len = p - value;
 							if (name_len > 0 && value_len > 0)
 							{
-								if(strncmp(name, "type", 4))
+								if(strncmp(name, "type", 4) == 0)
 								{
 									track_type = (char*)malloc(value_len + 1);
 									strncpy(track_type, value, value_len);
 									track_type[value_len] = '\0';
 								}
-								else if(strncmp(name, "dlna_extras", 11))
+								else if(strncmp(name, "dlna_extras", 11) == 0)
 								{
 									track_dlna_extras = (char*)malloc(value_len + 1);
 									strncpy(track_dlna_extras, value, value_len);
