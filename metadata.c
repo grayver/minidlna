@@ -364,6 +364,8 @@ GetAudioMetadata(const char *path, char *name)
 
 	if( !(*lang) )
 	{
+		if( *language )
+			strncpyt(lang, language, sizeof(lang));
 		if( !getenv("LANG") )
 			strcpy(lang, "en_US");
 		else

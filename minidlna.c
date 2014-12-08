@@ -532,6 +532,8 @@ init(int argc, char **argv)
 	runtime_vars.root_container = NULL;
 	runtime_vars.ifaces[0] = NULL;
 
+	memset(language, 0, sizeof(language));
+
 	/* read options file first since
 	 * command line arguments have final say */
 	if (readoptionsfile(optionsfile) < 0)
@@ -733,6 +735,9 @@ init(int argc, char **argv)
 		case MERGE_MEDIA_DIRS:
 			if (strtobool(ary_options[i].value))
 				SETFLAG(MERGE_MEDIA_DIRS_MASK);
+			break;
+		case UPNPLANG:
+			strncpyt(language, ary_options[i].value, LANGUAGE_MAX_LEN);
 			break;
 		default:
 			DPRINTF(E_ERROR, L_GENERAL, "Unknown option in file %s\n",

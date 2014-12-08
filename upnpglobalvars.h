@@ -231,6 +231,8 @@ extern char db_path[];
 extern char log_path[];
 extern struct media_dir_s *media_dirs;
 extern struct album_art_name_s *album_art_names;
+#define LANGUAGE_MAX_LEN 64
+extern char language[];
 extern short int scanning;
 extern volatile short int quitting;
 extern volatile uint32_t updateID;
